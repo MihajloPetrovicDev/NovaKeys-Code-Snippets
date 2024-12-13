@@ -1,0 +1,74 @@
+public function saveListingKeys(Request $request) {
+    $incomingFields = $request->validate([
+        'listingId' => ['required', 'int'],
+        'keys' => ['max: 5000']
+    ]);
+    try {
+        if(!Auth::check()) {
+            return redirect()->route('login_page');
+        }
+
+        $listing = Listing::findOrFail($incomingFields['listingId']);
+        $userId = Auth::id();
+        $seller = Seller::where('user_id', $userId)->firstOrFail();
+
+        $keys = explode("\n", $incomingFields['keys']);
+        $keysFromDb = DB::table('keys')->where('listing_id', $listing->id)->pluck('key')->toArray();
+
+        $keysToAdd = array_diff($keys, $keysFromDb);
+        $keysToRemove = array_diff($keysFromDb, $keys);   
+
+        if($listing->seller_id !== $seller->id) {
+            return redirect()->route('index');
+        }   
+
+        DB::transaction(function() use ($listing, $keysToAdd, $keysToRemove) {
+            if(Key::where('listing_id', $listing->id)->count() === 0 && count($keysToAdd) > 0) {
+                $archievedListing = ArchivedListing::where('listing_id', $listing->id)->first();
+                $archievedListing->delete();
+            }
+
+            foreach($keysToAdd as $keyToAdd) {
+                if($keyToAdd) {
+                    $key = new Key();
+                    $key->listing_id = $listing->id;
+                    $key->key = $keyToAdd;
+
+                    $key->save();
+                }
+            }
+
+            DB::table('keys')->where('listing_id', $listing->id)->whereIn('key', $keysToRemove)->delete();
+
+            if(Key::where('listing_id', $listing->id)->count() === 0) {
+                $archievedListing = new ArchivedListing();
+                $archievedListing->listing_id = $listing->id;
+
+                $archievedListing->save();
+            }
+        });
+
+        return redirect()->route('seller-dashboard-listings');
+    }
+    catch (ModelNotFoundException $e) {
+        Log::error('Listing or Seller not found', [
+            'message' => $e->getMessage(),
+            'exception' => $e,
+            'user_id' => auth()->id()
+        ]);
+
+        return redirect()->route('index');
+    }
+    catch(Exception $e) {
+        Log::error('Error occurred', [
+            'message' => $e->getMessage(),
+            'exception' => $e,
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+            'user_id' => auth()->id()
+        ]);
+
+        return redirect()->route('seller-dashboard-listings');
+    }
+}

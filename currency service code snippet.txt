@@ -1,0 +1,21 @@
+public function convertToDisplayCurrency($amount, $fromCurrency, $toCurrency) {
+    $conversionRate = DisplayCurrencyConversionRate::where('from_currency', $fromCurrency)->where('to_currency', $toCurrency)->orderBy('created_at', 'desc')->first()->conversion_rate;
+    $convertedAmount = number_format($amount * $conversionRate, 2, __('ui.general.currency_decimal_separator'), '');
+    return $convertedAmount;
+}
+
+public function convertVariablesToDisplayCurrency(array &$values, $selectedDisplayCurrency) {
+    foreach ($values as &$value) {
+        switch ($selectedDisplayCurrency) {
+            case 'RSD':
+                $value = number_format($value, 2, __('ui.general.currency_decimal_separator'), '') . ' RSD';
+                    break;
+            case 'EUR':
+                $value = $this->convertToDisplayCurrency($value, 'RSD', 'EUR') . ' EUR';
+                break;
+            case 'USD':
+                $value = $this->convertToDisplayCurrency($value, 'RSD', 'USD') . ' USD';
+                break;
+        }
+    }
+}
