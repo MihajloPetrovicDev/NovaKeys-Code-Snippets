@@ -9,7 +9,7 @@ public function convertVariablesToDisplayCurrency(array &$values, $selectedDispl
         switch ($selectedDisplayCurrency) {
             case 'RSD':
                 $value = number_format($value, 2, __('ui.general.currency_decimal_separator'), '') . ' RSD';
-                    break;
+                break;
             case 'EUR':
                 $value = $this->convertToDisplayCurrency($value, 'RSD', 'EUR') . ' EUR';
                 break;
