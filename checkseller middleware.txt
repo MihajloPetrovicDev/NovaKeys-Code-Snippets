@@ -21,8 +21,7 @@ class CheckSeller
             return redirect()->route('login_page');
         }
 
-        $user = Auth::user();
-        $seller = Seller::where('user_id', $user->id)->first();
+        $seller = Seller::where('user_id', Auth::id())->first();
 
         if(!$seller) {
             return redirect()->route('index')->with('error', __('errors.middleware.not_authorized'));
