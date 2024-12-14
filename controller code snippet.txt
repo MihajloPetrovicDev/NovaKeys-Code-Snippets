@@ -1,13 +1,14 @@
 public function saveListingKeys(Request $request) {
+    if(!Auth::check()) {
+        return redirect()->route('login_page');
+    }
+
     $incomingFields = $request->validate([
         'listingId' => ['required', 'int'],
         'keys' => ['max: 5000']
     ]);
-    try {
-        if(!Auth::check()) {
-            return redirect()->route('login_page');
-        }
 
+    try {
         $listing = Listing::findOrFail($incomingFields['listingId']);
         $userId = Auth::id();
         $seller = Seller::where('user_id', $userId)->firstOrFail();
